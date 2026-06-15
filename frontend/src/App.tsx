@@ -25,6 +25,7 @@ const hasActiveKey = (s: ISettings | null) => !!s?.providers?.[s.provider]?.hasK
 
 const PROVIDER_LABELS: Record<string, string> = {
   gemini: "Gemini",
+  openai: "OpenAI",
   openrouter: "OpenRouter",
   fal: "fal.ai",
   byteplus: "BytePlus",

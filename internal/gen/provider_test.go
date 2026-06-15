@@ -14,6 +14,7 @@ func TestNewFactory(t *testing.T) {
 	}{
 		{"gemini", "*gen.Client"},
 		{"", "*gen.Client"},
+		{"openai", "*gen.OpenAI"},
 		{"openrouter", "*gen.OpenRouter"},
 		{"fal", "*gen.Fal"},
 		{"byteplus", "*gen.BytePlus"},
@@ -36,6 +37,8 @@ func typeName(v any) string {
 	switch v.(type) {
 	case *Client:
 		return "*gen.Client"
+	case *OpenAI:
+		return "*gen.OpenAI"
 	case *OpenRouter:
 		return "*gen.OpenRouter"
 	case *Fal:
@@ -50,6 +53,9 @@ func typeName(v any) string {
 func TestDefaultModelFor(t *testing.T) {
 	if DefaultModelFor("gemini") != DefaultModel {
 		t.Fatal("gemini 기본 모델 오류")
+	}
+	if DefaultModelFor("openai") != "gpt-image-2" {
+		t.Fatal("openai 기본 모델 오류")
 	}
 	if DefaultModelFor("openrouter") != "google/gemini-3-pro-image-preview" {
 		t.Fatal("openrouter 기본 모델 오류")
@@ -88,6 +94,18 @@ func TestBPSizeFor(t *testing.T) {
 	// 와이드 스트립: 긴 변 4096, 짧은 변은 최소 1280으로 클램프
 	if got := bpSizeFor("7:1"); got != "4096x1280" {
 		t.Fatalf("와이드 크기 클램프 오류: %s", got)
+	}
+}
+
+func TestOpenAISizeFor(t *testing.T) {
+	if got := openAISizeFor("1:1"); got != "1024x1024" {
+		t.Fatalf("정사각 크기 오류: %s", got)
+	}
+	if got := openAISizeFor("16:9"); got != "1792x1008" {
+		t.Fatalf("16:9 크기 오류: %s", got)
+	}
+	if got := openAISizeFor("21:9"); got != "1792x768" {
+		t.Fatalf("21:9 크기 오류: %s", got)
 	}
 }
 

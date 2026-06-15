@@ -12,6 +12,7 @@ func TestParseEnvFile(t *testing.T) {
 	content := "# 주석\n" +
 		"FAL_KEY=abc123:secret\n" +
 		"export OPENROUTER_API_KEY=\"sk-or-test\"\n" +
+		"OPENAI_API_KEY='sk-openai-test'\n" +
 		"GEMINI_API_KEY='AIza-test'\n" +
 		"INVALID_LINE\n" +
 		"EMPTY=\n"
@@ -28,6 +29,9 @@ func TestParseEnvFile(t *testing.T) {
 	if out["OPENROUTER_API_KEY"] != "sk-or-test" {
 		t.Fatalf("export + 따옴표 파싱 실패: %q", out["OPENROUTER_API_KEY"])
 	}
+	if out["OPENAI_API_KEY"] != "sk-openai-test" {
+		t.Fatalf("OPENAI_API_KEY 파싱 실패: %q", out["OPENAI_API_KEY"])
+	}
 	if out["GEMINI_API_KEY"] != "AIza-test" {
 		t.Fatalf("작은따옴표 파싱 실패: %q", out["GEMINI_API_KEY"])
 	}
@@ -39,10 +43,11 @@ func TestParseEnvFile(t *testing.T) {
 func TestSettingsCfg(t *testing.T) {
 	s := Settings{
 		Gemini:     ProviderCfg{APIKey: "g"},
+		OpenAI:     ProviderCfg{APIKey: "ai"},
 		OpenRouter: ProviderCfg{APIKey: "o"},
 		Fal:        ProviderCfg{APIKey: "f"},
 	}
-	if s.Cfg("openrouter").APIKey != "o" || s.Cfg("fal").APIKey != "f" {
+	if s.Cfg("openai").APIKey != "ai" || s.Cfg("openrouter").APIKey != "o" || s.Cfg("fal").APIKey != "f" {
 		t.Fatal("프로바이더별 설정 매핑 오류")
 	}
 	// 알 수 없는 프로바이더는 gemini로 폴백

@@ -166,7 +166,7 @@ func TestBuildStripPrompt(t *testing.T) {
 	p := BuildStripPrompt("blue wizard", StylePresets["pixel"], StateSpec{
 		Name: "walk", Frames: 6, FPS: 10, Loop: true, Action: "walking",
 	}, "make arms bigger")
-	for _, want := range []string{"exactly 6", "blue wizard", "magenta", "loops", "make arms bigger"} {
+	for _, want := range []string{"exactly 6", "blue wizard", "magenta", "loops", "make arms bigger", "32-64px game sprite", "limited palette"} {
 		if !containsFold(p, want) {
 			t.Fatalf("프롬프트에 %q 누락", want)
 		}

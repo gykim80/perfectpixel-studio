@@ -17,8 +17,9 @@ type ProviderCfg struct {
 
 // Settings는 사용자 설정입니다.
 type Settings struct {
-	Provider   string      `json:"provider"` // gemini | openrouter | fal | byteplus
+	Provider   string      `json:"provider"` // gemini | openai | openrouter | fal | byteplus
 	Gemini     ProviderCfg `json:"gemini"`
+	OpenAI     ProviderCfg `json:"openai"`
 	OpenRouter ProviderCfg `json:"openrouter"`
 	Fal        ProviderCfg `json:"fal"`
 	BytePlus   ProviderCfg `json:"byteplus"`
@@ -31,6 +32,8 @@ type Settings struct {
 // Cfg는 프로바이더 이름으로 해당 설정을 반환합니다.
 func (s *Settings) Cfg(provider string) *ProviderCfg {
 	switch provider {
+	case "openai":
+		return &s.OpenAI
 	case "openrouter":
 		return &s.OpenRouter
 	case "fal":
@@ -92,6 +95,9 @@ func Load() Settings {
 	if s.Gemini.APIKey == "" {
 		s.Gemini.APIKey = firstNonEmpty(env["GEMINI_API_KEY"], env["GOOGLE_API_KEY"])
 	}
+	if s.OpenAI.APIKey == "" {
+		s.OpenAI.APIKey = env["OPENAI_API_KEY"]
+	}
 	if s.OpenRouter.APIKey == "" {
 		s.OpenRouter.APIKey = env["OPENROUTER_API_KEY"]
 	}
@@ -107,6 +113,8 @@ func Load() Settings {
 		switch {
 		case s.Gemini.APIKey != "":
 			s.Provider = "gemini"
+		case s.OpenAI.APIKey != "":
+			s.Provider = "openai"
 		case s.OpenRouter.APIKey != "":
 			s.Provider = "openrouter"
 		case s.Fal.APIKey != "":
@@ -155,7 +163,7 @@ func loadEnvFallback() map[string]string {
 	}
 
 	// 2) OS 환경변수 (파일보다 우선)
-	for _, key := range []string{"GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENROUTER_API_KEY", "FAL_KEY", "FAL_API_KEY", "BYTEPLUS_API_KEY", "ARK_API_KEY"} {
+	for _, key := range []string{"GEMINI_API_KEY", "GOOGLE_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "FAL_KEY", "FAL_API_KEY", "BYTEPLUS_API_KEY", "ARK_API_KEY"} {
 		if v := os.Getenv(key); v != "" {
 			out[key] = v
 		}

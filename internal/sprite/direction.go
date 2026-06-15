@@ -69,7 +69,7 @@ var facingDescs = map[string]facingDesc{
 		view:       "front view",
 		camera:     "camera directly in front, at eye level",
 		body:       "the character faces the viewer directly",
-		visibility: "full face visible (eyes, nose, mouth); both arms and both legs fully visible, symmetric",
+		visibility: "full face visible (eyes and mouth, minimal nose detail); both arms and both legs fully visible, symmetric",
 	},
 	"north": {
 		view:       "back view",

@@ -7,11 +7,13 @@ import (
 
 // StylePresets는 선택 가능한 스타일 계약 모음입니다.
 var StylePresets = map[string]string{
-	"pixel": "low-resolution pixel-art game sprite, chunky readable silhouette, " +
-		"thick dark 1-2px outline, visible stepped pixel edges, limited color palette, " +
-		"flat cel shading with at most one highlight step and one shadow step, " +
-		"simple readable face, clear separated limbs. " +
-		"Never use painterly rendering, soft gradients, glossy lighting, anti-aliased fine detail, or 3D rendering.",
+	"pixel": "true low-resolution pixel-art game sprite, like a 32-64px sprite enlarged on the canvas, " +
+		"chunky readable silhouette, clean dark 1px outline, visible square pixel blocks, " +
+		"grid-aligned hard pixel edges, limited shared palette, solid tone clusters, " +
+		"flat color shading with at most one highlight step and one shadow step, " +
+		"simple readable face and clearly separated limbs. " +
+		"Never use painterly rendering, smooth gradients, airbrush shading, glossy lighting, " +
+		"anti-aliased fine detail, high-definition pixel art, fine-grained pixel art, anime illustration, concept art, or 3D rendering.",
 	"chibi": "cute chibi game sprite with oversized head and small body, " +
 		"bold dark outline, flat bright colors, minimal shading, large expressive eyes, " +
 		"clean cartoon shapes readable at small size. " +
@@ -49,6 +51,37 @@ func canvasContract() string {
 	return b.String()
 }
 
+// spriteDesignContract는 기본 픽셀 스타일에서 요구하는 게임 스프라이트 구조를 고정합니다.
+func spriteDesignContract() string {
+	var b strings.Builder
+	b.WriteString("Game-sprite design contract:\n")
+	b.WriteString("- Interpret the subject as a game-ready character sprite, not an illustration, poster, sticker, mascot logo, or concept-art render.\n")
+	b.WriteString("- Preserve the subject's identity through a strong silhouette, hairstyle, outfit shapes, accessories, weapon or signature prop, and dominant color blocks.\n")
+	b.WriteString("- Simplify anatomy into readable sprite shapes: compact torso, clear head shape, simple arms and legs, minimal joint detail, no tiny anatomy rendering.\n")
+	b.WriteString("- Hair, clothing layers, capes, hats, weapons and accessories should read as distinct hard-edged pixel shapes, not detailed painted textures.\n")
+	b.WriteString("- Keep the face simple at sprite scale: readable eyes and mouth, minimal facial detail, no realistic nose or painted skin texture.\n")
+	return b.String()
+}
+
+// lowResPixelContract는 모델이 HD 일러스트로 도망가지 않게 렌더링 해상도 감각을 고정합니다.
+func lowResPixelContract() string {
+	var b strings.Builder
+	b.WriteString("Pixel rendering contract:\n")
+	b.WriteString("- The image must look like a 32-64px game sprite enlarged to the canvas, not newly painted at high resolution.\n")
+	b.WriteString("- Use chunky square pixel blocks, clean 1px outline, solid tone clusters, limited palette, minimal two-step flat shading.\n")
+	b.WriteString("- No dithering, no smooth gradients, no soft shadow, no blur, no airbrush, no texture, no fine hair strands, no tiny jewelry detail that would vanish at 64px.\n")
+	b.WriteString("- Every important shape must remain readable when shrunk to a thumbnail: silhouette first, details second.\n")
+	return b.String()
+}
+
+func pixelStyleContracts(style string) string {
+	s := strings.ToLower(style)
+	if !strings.Contains(s, "pixel") && !strings.Contains(s, "sprite") && !strings.Contains(s, "mmorpg") {
+		return ""
+	}
+	return spriteDesignContract() + "\n" + lowResPixelContract()
+}
+
 // rejectClause는 추출을 방해하는 요소를 거부하는 간결한 계약입니다.
 func rejectClause() string {
 	var b strings.Builder
@@ -64,14 +97,22 @@ func rejectClause() string {
 // BuildCharacterPrompt는 텍스트 설명 → 베이스 캐릭터 이미지 생성 프롬프트를 만듭니다.
 func BuildCharacterPrompt(description, style string) string {
 	var b strings.Builder
-	b.WriteString("Produce one complete game-character reference sprite in a relaxed, front-facing standing pose.\n\n")
+	b.WriteString("Produce one complete game-character reference sprite in a relaxed player-avatar standing pose.\n\n")
 	fmt.Fprintf(&b, "Subject: %s.\n\n", strings.TrimSpace(description))
+	b.WriteString("Feature audit before drawing (do this internally, then render): identify and preserve the subject's hairstyle, hair color, eye color, outfit layers, accessories, weapon or signature prop, symbolic motifs, and dominant colors.\n\n")
 	fmt.Fprintf(&b, "Render contract (obey strictly): %s\n\n", style)
+	if extra := pixelStyleContracts(style); extra != "" {
+		b.WriteString(extra)
+		b.WriteString("\n")
+	}
 	b.WriteString("Framing:\n")
 	b.WriteString("- A single figure, head to feet, vertically centered, occupying about three quarters of the canvas height with generous breathing room on every side.\n")
-	b.WriteString("- Symmetric A-pose: arms eased away from the torso, feet level and shoulder-width, weight balanced.\n")
+	b.WriteString("- Idle standing sprite pose: feet level, weight balanced, arms relaxed but readable.\n")
+	b.WriteString("- Almost flat 2D game-sprite view; avoid dramatic perspective, foreshortening, cinematic camera angles, and illustration-style posing.\n")
 	b.WriteString("- One continuous silhouette — nothing detached, no trailing accessories or particles.\n\n")
 	b.WriteString(canvasContract())
+	b.WriteString("\n")
+	b.WriteString(rejectClause())
 	return b.String()
 }
 
@@ -91,6 +132,10 @@ func BuildStripPrompt(description, style string, spec StateSpec, feedback string
 		fmt.Fprintf(&b, "Subject notes: %s.\n\n", d)
 	}
 	fmt.Fprintf(&b, "Render contract (obey strictly): %s\n\n", style)
+	if extra := pixelStyleContracts(style); extra != "" {
+		b.WriteString(extra)
+		b.WriteString("\n")
+	}
 
 	if sec := FacingPromptSection(spec.Facing); sec != "" {
 		b.WriteString(sec)

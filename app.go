@@ -160,7 +160,7 @@ func (a *App) SaveProviderKey(provider, key string) error {
 // SaveProviderModel은 프로바이더의 이미지 모델을 변경합니다 (빈 값이면 기본 모델로 복원).
 func (a *App) SaveProviderModel(provider, model string) error {
 	switch provider {
-	case gen.ProviderGemini, gen.ProviderOpenRouter, gen.ProviderFal, gen.ProviderBytePlus:
+	case gen.ProviderGemini, gen.ProviderOpenAI, gen.ProviderOpenRouter, gen.ProviderFal, gen.ProviderBytePlus:
 	default:
 		return fmt.Errorf("지원하지 않는 프로바이더입니다: %s", provider)
 	}
@@ -176,7 +176,7 @@ func (a *App) SaveProviderModel(provider, model string) error {
 // SetProvider는 활성 프로바이더를 변경합니다.
 func (a *App) SetProvider(provider string) error {
 	switch provider {
-	case gen.ProviderGemini, gen.ProviderOpenRouter, gen.ProviderFal, gen.ProviderBytePlus:
+	case gen.ProviderGemini, gen.ProviderOpenAI, gen.ProviderOpenRouter, gen.ProviderFal, gen.ProviderBytePlus:
 	default:
 		return fmt.Errorf("지원하지 않는 프로바이더입니다: %s", provider)
 	}

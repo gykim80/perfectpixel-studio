@@ -29,6 +29,7 @@ interface IProps {
 
 const PROVIDERS: { key: string; label: string; placeholder: string }[] = [
   { key: "gemini", label: "Gemini", placeholder: "AIza..." },
+  { key: "openai", label: "OpenAI", placeholder: "sk-..." },
   { key: "openrouter", label: "OpenRouter", placeholder: "sk-or-..." },
   { key: "fal", label: "fal.ai", placeholder: "key_id:key_secret" },
   { key: "byteplus", label: "BytePlus", placeholder: "ark-..." },

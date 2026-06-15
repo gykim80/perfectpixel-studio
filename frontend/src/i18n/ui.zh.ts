@@ -47,6 +47,7 @@ const zh: Record<string, string> = {
   toast_provider_active: "已切换为使用 {provider}。",
   language: "语言",
   help_gemini: "请输入在 Google AI Studio 获取的密钥。",
+  help_openai: "请输入在 OpenAI Platform 获取的密钥。(.env 中的 OPENAI_API_KEY 也会自动识别)",
   help_openrouter: "请输入在 openrouter.ai → Keys 获取的密钥。",
   help_fal: "请输入 fal.ai 控制台获取的密钥。(.env 中的 FAL_KEY 也会自动识别)",
   help_byteplus: "请输入 BytePlus ModelArk 控制台获取的 API 密钥。(.env 中的 BYTEPLUS_API_KEY / ARK_API_KEY 也会自动识别)",
