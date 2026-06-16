@@ -22,6 +22,7 @@ type stateResult struct {
 	Score    int
 	Identity float64
 	Motion   float64
+	Contact  float64
 	Errors   []string
 	frames   []*image.NRGBA
 	rawClean *image.NRGBA
@@ -45,7 +46,7 @@ func (r stateResult) status() string {
 func (r stateResult) row() resultRow {
 	return resultRow{
 		Name: r.Name, Expected: r.Expected, Found: r.Found, Attempts: r.Attempts,
-		Score: r.Score, Identity: r.Identity, Motion: r.Motion,
+		Score: r.Score, Identity: r.Identity, Motion: r.Motion, Contact: r.Contact,
 		Status: r.status(), Errors: r.Errors,
 	}
 }
@@ -103,7 +104,6 @@ func genState(ctx context.Context, p gen.Provider, opt options, style string,
 	}
 
 	var best stateResult
-	var bestInsp sprite.InspectResult
 	bestScore := -1 << 30
 	best.Name, best.Expected = spec.Name, expected
 
@@ -134,13 +134,16 @@ func genState(ctx context.Context, p gen.Provider, opt options, style string,
 		cand.Errors = append(cand.Errors, insp.Errors...)
 
 		if cand.ok() {
-			qm := sprite.ScoreFrames(ext.Frames, expected, insp, cand.Motion)
-			cand.Score, cand.Identity = qm.Score, qm.IdentityHash
+			qm := sprite.ScoreFrames(ext.Frames)
+			cand.Score = int(qm.Overall * 100)
+			cand.Identity = qm.Identity
+			cand.Motion = qm.Motion
+			cand.Contact = qm.Contact
 			return cand
 		}
 		score := cand.Found*100 - len(cand.Errors)*10
 		if score > bestScore {
-			best, bestScore, bestInsp = cand, score, insp
+			best, bestScore = cand, score
 		}
 
 		var fixes []string
@@ -153,8 +156,11 @@ func genState(ctx context.Context, p gen.Provider, opt options, style string,
 		feedback = strings.Join(fixes, "\n")
 	}
 	if len(best.frames) > 0 {
-		qm := sprite.ScoreFrames(best.frames, expected, bestInsp, best.Motion)
-		best.Score, best.Identity = qm.Score, qm.IdentityHash
+		qm := sprite.ScoreFrames(best.frames)
+		best.Score = int(qm.Overall * 100)
+		best.Identity = qm.Identity
+		best.Motion = qm.Motion
+		best.Contact = qm.Contact
 	}
 	return best
 }

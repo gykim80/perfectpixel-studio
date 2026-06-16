@@ -8,17 +8,18 @@ import (
 
 // 프레임 품질 검사 파라미터
 const (
-	inspectEdgeMargin    = 2    // 가장자리 검사 폭(px)
-	inspectEdgeMax       = 24   // 이 수를 넘는 가장자리 픽셀은 잘림 위험
-	inspectKeyDist       = 70.0 // 배경 키와 이 거리 이내면 잔여 크로마 후보
-	inspectKeyMax        = 120  // 잔여 크로마 픽셀 허용 한도
-	inspectSmallRatio    = 0.35 // 중앙값 대비 이 비율 미만이면 비정상적으로 작은 프레임
-	inspectLargeRatio    = 2.75 // 중앙값 대비 이 비율 초과면 비정상적으로 큰 프레임
-	inspectMinContentAbs = 400  // 프레임당 최소 콘텐츠 픽셀(절대값)
-	driftWarnSim         = 0.65 // 색 구성 유사도가 이 미만이면 캐릭터 drift 경고
-	driftErrorSim        = 0.45 // 이 미만이면 심각한 drift → 재생성 필요
-	baseWarnSim          = 0.60 // 베이스 캐릭터 대비 평균 유사도 경고 한도
-	baseErrorSim         = 0.40 // 이 미만이면 전 프레임이 베이스와 다른 캐릭터 → 재생성
+	inspectEdgeMargin      = 2    // 가장자리 검사 폭(px)
+	inspectEdgeMax         = 24   // 이 수를 넘는 가장자리 픽셀은 잘림 위험
+	inspectKeyDist         = 70.0 // 배경 키와 이 거리 이내면 잔여 크로마 후보
+	inspectKeyMax          = 120  // 잔여 크로마 픽셀 허용 한도
+	inspectSmallRatio      = 0.35 // 중앙값 대비 이 비율 미만이면 비정상적으로 작은 프레임
+	inspectLargeRatio      = 2.75 // 중앙값 대비 이 비율 초과면 비정상적으로 큰 프레임
+	inspectMinContentAbs   = 400  // 프레임당 최소 콘텐츠 픽셀(절대값)
+	inspectContentMinAlpha = 0.25 // 전체 프레임 대비 이 비율 미만 불투명이면 강한 공간 절약 가능
+	driftWarnSim           = 0.65 // 색 구성 유사도가 이 미만이면 캐릭터 drift 경고
+	driftErrorSim          = 0.45 // 이 미만이면 심각한 drift → 재생성 필요
+	baseWarnSim            = 0.60 // 베이스 캐릭터 대비 평균 유사도 경고 한도
+	baseErrorSim           = 0.40 // 이 미만이면 전 프레임이 베이스와 다른 캐릭터 → 재생성
 )
 
 // keyTinted는 픽셀이 배경 키 색조를 띠는지(잔여 크로마/헤일로) 판정합니다.
@@ -52,9 +53,10 @@ type FrameReport struct {
 // InspectResult는 프레임 품질 검사 결과입니다.
 type InspectResult struct {
 	Reports    []FrameReport
-	Errors     []string // 재생성이 필요한 심각한 문제 (한국어, 사용자 표시용)
-	Warnings   []string // 참고용 경고 (한국어, 사용자 표시용)
-	RetryHints []string // 재생성 프롬프트에 주입할 보정 지시 (영문)
+	Errors     []string    // 재생성이 필요한 심각한 문제 (한국어, 사용자 표시용)
+	Warnings   []string    // 참고용 경고 (한국어, 사용자 표시용)
+	RetryHints []string    // 재생성 프롬프트에 주입할 보정 지시 (영문)
+	Score      ScoreResult `json:"score"`
 }
 
 // Ok는 심각한 품질 문제가 없으면 true입니다.
@@ -80,6 +82,12 @@ func InspectFrames(frames []*image.NRGBA, key [3]uint8, base *image.NRGBA) Inspe
 	}
 
 	areas := make([]int, 0, len(frames))
+	var opaqueTotal int
+	for _, f := range frames {
+		w, h := f.Rect.Dx(), f.Rect.Dy()
+		opaqueTotal += w * h
+	}
+	contentAlphaCutoff := int(float64(opaqueTotal/len(frames)) * inspectContentMinAlpha)
 	for i, f := range frames {
 		rep := FrameReport{Index: i}
 		w, h := f.Rect.Dx(), f.Rect.Dy()
@@ -120,6 +128,12 @@ func InspectFrames(frames []*image.NRGBA, key [3]uint8, base *image.NRGBA) Inspe
 			res.Errors = append(res.Errors,
 				fmt.Sprintf("프레임 %d에 배경색 잔여물이 남아 있습니다 (%d픽셀)", i+1, rep.KeyResidue))
 			addHint("The character must not contain magenta or magenta-adjacent colors anywhere (clothes, effects, highlights). Keep the background a perfectly flat pure magenta #FF00FF and keep all character colors far from magenta.")
+		}
+
+		if contentAlphaCutoff > 0 && rep.ContentPixels < contentAlphaCutoff {
+			res.Warnings = append(res.Warnings,
+				fmt.Sprintf("프레임 %d의 콘텐츠가 다른 프레임보다 현저히 적습니다 (오차: %d%%)", i+1, int((1-float64(rep.ContentPixels)/float64(contentAlphaCutoff))*100)))
+			addHint("Draw the character at a consistent size across the strip; no pose may be much smaller or partially erased.")
 		}
 
 		res.Reports = append(res.Reports, rep)
@@ -207,6 +221,9 @@ func InspectFrames(frames []*image.NRGBA, key [3]uint8, base *image.NRGBA) Inspe
 				fmt.Sprintf("생성된 프레임들의 색 구성이 베이스 캐릭터와 다소 다릅니다 (유사도 %.0f%%)", avg*100))
 		}
 	}
+
+	// 프레임 수/검사 시점에서도 점수를 계산해 InspectResult에 포함
+	res.Score = ScoreFrames(frames)
 
 	return res
 }

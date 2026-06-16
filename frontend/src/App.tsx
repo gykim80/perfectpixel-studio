@@ -203,6 +203,7 @@ export default function App() {
           error: items.length > 0 ? undefined : t("err_mirror_fail"),
           items,
           warnings: [],
+          scores: src.scores ? { ...src.scores } : undefined,
         });
         return items.length > 0;
       }
@@ -231,12 +232,26 @@ export default function App() {
         png,
         selected: true,
       }));
+      const scores = res.scores
+        ? {
+            identity: (res.scores as any).identity ?? 0,
+            motion: (res.scores as any).motion ?? 0,
+            contact: (res.scores as any).contact ?? 0,
+            overall: (res.scores as any).overall ?? 0,
+          }
+        : undefined;
+      // 품질 점수가 매우 낮으면 명시적 경고 추가 (사용자가 재생성을 고려할 수 있도록)
+      const extraWarnings: string[] = [];
+      if (scores && scores.overall < 0.35) {
+        extraWarnings.push(t("score_low_warn"));
+      }
       updateState(id, {
         status: items.length > 0 ? "done" : "error",
         error: items.length > 0 ? undefined : t("err_no_frames"),
         items,
         rawStrip: res.rawStrip || undefined,
-        warnings: res.warnings ?? [],
+        warnings: [...(res.warnings ?? []), ...extraWarnings],
+        scores,
       });
       return items.length > 0;
     } catch (e) {

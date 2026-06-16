@@ -127,6 +127,10 @@ func aspectHint(aspectRatio string) string {
 	switch aspectRatio {
 	case "", "1:1":
 		return "Render on a square 1:1 canvas."
+	case "16:9":
+		return "Render on a wide 16:9 landscape canvas, much wider than tall."
+	case "21:9":
+		return "Render on an extra-wide 21:9 panorama canvas, with plenty of horizontal room for a long row of poses."
 	default:
 		return fmt.Sprintf("Render on a wide %s landscape canvas.", aspectRatio)
 	}

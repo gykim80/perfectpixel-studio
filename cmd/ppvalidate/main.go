@@ -35,9 +35,10 @@ type stripResult struct {
 	Attempts int
 	FPS      int
 	Loop     bool
-	Motion   float64 // 인접 프레임 평균 변화율 (0=정지, 클수록 큰 움직임)
-	Score    int     // 종합 품질 점수 0~100
-	Identity float64 // 프레임 간 dHash 정체성 유사도 0~1
+	Score    int
+	Identity float64
+	Motion   float64
+	Contact  float64
 	Errors   []string
 	Warnings []string
 	rel      string // outDir 기준 하위 디렉토리 (로스터 모드: char-NN, 그 외 빈 값)
@@ -79,7 +80,6 @@ func genStrip(ctx context.Context, p gen.Provider, desc, styleKey, style string,
 	feedback := ""
 
 	var best stripResult
-	var bestInsp sprite.InspectResult
 	bestScore := -1 << 30
 	best.Name, best.Expected = spec.Name, expected
 
@@ -112,13 +112,16 @@ func genStrip(ctx context.Context, p gen.Provider, desc, styleKey, style string,
 		cand.Errors = append(cand.Errors, insp.Errors...)
 
 		if cand.ok() {
-			qm := sprite.ScoreFrames(ext.Frames, expected, insp, cand.Motion)
-			cand.Score, cand.Identity = qm.Score, qm.IdentityHash
+			qm := sprite.ScoreFrames(ext.Frames)
+			cand.Score = int(qm.Overall * 100)
+			cand.Identity = qm.Identity
+			cand.Motion = qm.Motion
+			cand.Contact = qm.Contact
 			return cand, nil
 		}
 		score := cand.Found*100 - len(cand.Errors)*10
 		if score > bestScore {
-			best, bestScore, bestInsp = cand, score, insp
+			best, bestScore = cand, score
 		}
 
 		var fixes []string
@@ -131,8 +134,11 @@ func genStrip(ctx context.Context, p gen.Provider, desc, styleKey, style string,
 		feedback = strings.Join(fixes, "\n")
 	}
 	if len(best.frames) > 0 {
-		qm := sprite.ScoreFrames(best.frames, expected, bestInsp, best.Motion)
-		best.Score, best.Identity = qm.Score, qm.IdentityHash
+		qm := sprite.ScoreFrames(best.frames)
+		best.Score = int(qm.Overall * 100)
+		best.Identity = qm.Identity
+		best.Motion = qm.Motion
+		best.Contact = qm.Contact
 	}
 	return best, nil
 }

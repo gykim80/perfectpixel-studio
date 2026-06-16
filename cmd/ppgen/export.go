@@ -18,6 +18,7 @@ type resultRow struct {
 	Score    int      `json:"score"`
 	Identity float64  `json:"identity"`
 	Motion   float64  `json:"motion"`
+	Contact  float64  `json:"contact"`
 	Status   string   `json:"status"`
 	Errors   []string `json:"errors,omitempty"`
 }

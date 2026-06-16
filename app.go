@@ -344,12 +344,13 @@ type GenerateStateArgs struct {
 
 // StateResult는 상태 생성 결과입니다.
 type StateResult struct {
-	Name     string   `json:"name"`
-	RawStrip string   `json:"rawStrip"`
-	Frames   []string `json:"frames"`
-	Expected int      `json:"expected"`
-	Found    int      `json:"found"`
-	Warnings []string `json:"warnings"`
+	Name     string             `json:"name"`
+	RawStrip string             `json:"rawStrip"`
+	Frames   []string           `json:"frames"`
+	Expected int                `json:"expected"`
+	Found    int                `json:"found"`
+	Warnings []string           `json:"warnings"`
+	Scores   sprite.ScoreResult `json:"scores"`
 }
 
 // GenerateState는 한 상태의 스트립을 생성하고 프레임을 추출합니다.
@@ -457,6 +458,7 @@ func (a *App) GenerateState(args GenerateStateArgs) (StateResult, error) {
 		}
 		cand.Warnings = append(cand.Warnings, insp.Errors...)
 		cand.Warnings = append(cand.Warnings, insp.Warnings...)
+		cand.Scores = sprite.ScoreFrames(extracted.Frames)
 		// 인접 프레임 변화가 거의 없으면(사실상 정지) 비차단 경고.
 		// 임계값 0.01은 실측 기반: 의도적으로 미동이 적은 meditate(~1.5%)도 통과시키고
 		// 0.01 미만, 즉 프레임이 사실상 동일한 "애니메이션이 전혀 움직이지 않는" 결함만 잡습니다.

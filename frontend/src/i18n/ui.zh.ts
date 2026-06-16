@@ -170,6 +170,12 @@ const zh: Record<string, string> = {
   play: "播放",
   restart: "从头播放",
   zoom: "缩放 {n}×",
+  score: "完成度",
+  score_tooltip: "完成度：一致性（颜色/形状）· 动态（运动量）· 接触（地面/边缘稳定性）",
+  score_identity: "一致性",
+  score_motion: "动态",
+  score_contact: "接触",
+  score_low_warn: "完成度得分较低。可以填写反馈或重新生成以改进。",
 };
 
 export default zh;

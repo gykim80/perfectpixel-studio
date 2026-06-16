@@ -135,6 +135,10 @@ func main() {
 		scanSamples()
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == "scan2" {
+		scanBodyExtent()
+		return
+	}
 	fmt.Println("== PerfectPixel 기술 비교 이미지 생성 (실제 AI 파이프라인) ==")
 	// 매팅·픽셀화: 새로 생성한 마젠타 베이스 캐릭터(실제 AI)
 	base, err := buildRealBase()
@@ -150,6 +154,9 @@ func main() {
 	demoSegmentation(segMatte, segN)
 	demoCentroid(cenMatte, cenN)
 	demoPixelize(base)
+	demoBodyExtent()
+	demoOverlapRecovery()
+	buildOverview()
 	fmt.Println("완료. report-images/ 확인.")
 }
 

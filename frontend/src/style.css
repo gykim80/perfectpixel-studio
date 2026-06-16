@@ -70,6 +70,13 @@
 
   .panel-head { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-bottom: 1px solid hsl(var(--border)); flex-shrink: 0; }
   .panel-title { font-size: 12.5px; font-weight: 600; color: hsl(var(--foreground)); letter-spacing: -0.01em; white-space: nowrap; }
+  .score-bar { display: flex; align-items: center; gap: 8px; }
+  .score-pill { font-size: 10.5px; font-weight: 700; color: hsl(var(--primary)); background: hsl(var(--primary) / 0.1); border: 1px solid hsl(var(--primary) / 0.22); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+  .score-segments { display: flex; gap: 2px; width: 64px; height: 6px; border-radius: 3px; overflow: hidden; background: hsl(var(--muted)); }
+  .score-segments span { height: 100%; transition: width 0.3s ease; }
+  .score-segments span:nth-child(1) { background: hsl(var(--primary)); }
+  .score-segments span:nth-child(2) { background: hsl(150 65% 45%); }
+  .score-segments span:nth-child(3) { background: hsl(35 90% 52%); }
   .panel-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
   .panel-foot { padding: 10px 14px; border-top: 1px solid hsl(var(--border)); flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
 

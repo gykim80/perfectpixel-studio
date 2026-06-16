@@ -134,6 +134,14 @@ func BuildSharedPalette(frames []*image.NRGBA, maxColors int) []rgb {
 			merged = append(merged, e)
 		}
 	}
+	// 빈 버킷/팔레트 부족으로 색이 2개 미만이면 0번과 255번 회색이라도 추가
+	if len(merged) < 2 {
+		if len(merged) == 0 {
+			merged = append(merged, entry{rgb{0, 0, 0}, 1}, entry{rgb{255, 255, 255}, 1})
+		} else {
+			merged = append(merged, entry{rgb{255, 255, 255}, 1})
+		}
+	}
 	palette := make([]rgb, len(merged))
 	for i, e := range merged {
 		palette[i] = e.c

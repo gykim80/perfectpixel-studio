@@ -174,6 +174,14 @@ func RemoveBackground(src image.Image) *image.NRGBA {
 			out = out2
 		}
 	}
+	// 검색/다크 배경 fallback: 어두운/무채색 키가 감지되면 pure magenta 매팅도
+	// 시도해 더 나은 쪽(마젠타 잔여가 적은 쪽)을 택한다.
+	if !isMagentaKey(key) {
+		out2, frac2 := matteWith(img, [3]uint8{255, 0, 255})
+		if frac2 > 0.02 && magentaResidueFrac(out2) < magentaResidueFrac(out) {
+			out = out2
+		}
+	}
 	cleanupAlpha(out)
 	return out
 }

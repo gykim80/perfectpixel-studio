@@ -58,6 +58,15 @@ func ComposeAtlas(character string, states []StateFrames, cellW, cellH int) (*im
 			}
 		}
 		// 공통 발 앵커: 셀 가로 중앙 + 모든 프레임 콘텐츠의 최하단(지면).
+		// 단, groundY가 너무 위에 있으면(콘텐츠가 꼭대기) 기본값 셀 하단으로
+		// 대체하여 pivot이 프레임 밖으로 튀어나가지 않게 한다.
+		if groundY < cellH/2 && len(s.Frames) > 0 {
+			groundY = cellH
+		}
+		// abnormal pitfall: groundY가 셀보다 아래로 나가지 않도록 clamp
+		if groundY > cellH {
+			groundY = cellH
+		}
 		entry.Pivot = Point{X: cellW / 2, Y: groundY}
 		manifest.Animations[s.Spec.Name] = entry
 	}

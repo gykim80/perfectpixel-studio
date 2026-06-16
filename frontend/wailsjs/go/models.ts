@@ -190,6 +190,7 @@ export namespace main {
 	    expected: number;
 	    found: number;
 	    warnings: string[];
+	    scores: sprite.ScoreResult;
 	
 	    static createFrom(source: any = {}) {
 	        return new StateResult(source);
@@ -203,7 +204,26 @@ export namespace main {
 	        this.expected = source["expected"];
 	        this.found = source["found"];
 	        this.warnings = source["warnings"];
+	        this.scores = this.convertValues(source["scores"], sprite.ScoreResult);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }
@@ -254,6 +274,24 @@ export namespace sprite {
 	        this.frames = source["frames"];
 	        this.fps = source["fps"];
 	        this.loop = source["loop"];
+	    }
+	}
+	export class ScoreResult {
+	    identity: number;
+	    motion: number;
+	    contact: number;
+	    overall: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ScoreResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.identity = source["identity"];
+	        this.motion = source["motion"];
+	        this.contact = source["contact"];
+	        this.overall = source["overall"];
 	    }
 	}
 	export class StateSpec {

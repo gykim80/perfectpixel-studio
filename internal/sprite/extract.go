@@ -103,24 +103,31 @@ func ExtractFrames(strip *image.NRGBA, expected, cellW, cellH, margin int) Extra
 	if availW < 8 || availH < 8 {
 		availW, availH = cellW, cellH
 	}
-	maxW, maxEffH := 1, 1
+	maxBodyW, maxBodyH := 1, 1
 	for _, g := range fcs {
-		offset := baseline - g.bottom
-		if g.img.Rect.Dx() > maxW {
-			maxW = g.img.Rect.Dx()
+		bw, bh := bodyExtent(g.img)
+		if bw > maxBodyW {
+			maxBodyW = bw
 		}
-		if eff := g.img.Rect.Dy() + offset; eff > maxEffH {
-			maxEffH = eff
+		if bh > maxBodyH {
+			maxBodyH = bh
 		}
 	}
-	scale := minf(float64(availW)/float64(maxW), float64(availH)/float64(maxEffH))
+	scale := minf(float64(availW)/float64(maxBodyW), float64(availH)/float64(maxBodyH))
 	if scale > 1 {
 		scale = 1
 	}
 
 	for _, g := range fcs {
-		sw := int(float64(g.img.Rect.Dx())*scale + 0.5)
-		sh := int(float64(g.img.Rect.Dy())*scale + 0.5)
+		// scale은 body extent 기준으로 계산했으므로, 그 외 바운딩 박스 빈 공간은
+		// 여유 공간에 맞춰 조정한다.
+		boxScale := minf(scale, minf(float64(availW)/float64(g.img.Rect.Dx()), float64(availH)/float64(g.img.Rect.Dy())))
+		if boxScale > 1 {
+			boxScale = 1
+		}
+		// 세로 정렬에서는 실제 발/하체 부분(bottom)이 아니라 콘텐츠 하단 기준 사용
+		sw := int(float64(g.img.Rect.Dx())*boxScale + 0.5)
+		sh := int(float64(g.img.Rect.Dy())*boxScale + 0.5)
 		if sw < 1 {
 			sw = 1
 		}
@@ -132,19 +139,20 @@ func ExtractFrames(strip *image.NRGBA, expected, cellW, cellH, margin int) Extra
 			scaled = image.NewNRGBA(image.Rect(0, 0, sw, sh))
 			xdraw.CatmullRom.Scale(scaled, scaled.Rect, g.img, g.img.Rect, xdraw.Over, nil)
 		}
-		offset := int(float64(baseline-g.bottom)*scale + 0.5)
+		// 공통 baseline 보정을 위해 strip 내 콘텐츠 하단 대비 offset을 scale
+		contentBaseline := int(float64(baseline-g.bottom)*boxScale + 0.5)
 
 		cell := image.NewNRGBA(image.Rect(0, 0, cellW, cellH))
 		// 질량 중심이 셀 중앙에 오도록 수평 배치 (팔다리가 한쪽으로 뻗어도
 		// 면적이 큰 몸통이 지배해 프레임 간 흔들림이 적음).
-		left := int(float64(cellW)/2 - (g.cx-float64(g.minX))*scale + 0.5)
+		left := int(float64(cellW)/2 - (g.cx-float64(g.minX))*boxScale + 0.5)
 		if left < 0 {
 			left = 0
 		}
 		if left+sw > cellW {
 			left = cellW - sw
 		}
-		top := cellH - margin - offset - sh
+		top := cellH - margin - contentBaseline - sh
 		if top < 0 {
 			top = 0
 		}
@@ -158,6 +166,60 @@ func ExtractFrames(strip *image.NRGBA, expected, cellW, cellH, margin int) Extra
 			fmt.Sprintf("기대한 %d개와 다른 %d개의 포즈가 감지되었습니다. 포즈가 겹쳤거나 누락됐을 수 있어 재생성을 권장합니다.", expected, natural))
 	}
 	return res
+}
+
+// bodyExtent는 알파 질량 80%를 포함하는 최소 크기를 "실제 바디" extent로 반환합니다.
+// 길게 뻗은 팔다리 outlier가 스케일을 과대 산정하는 것을 막습니다.
+func bodyExtent(img *image.NRGBA) (int, int) {
+	w, h := img.Rect.Dx(), img.Rect.Dy()
+	if w == 0 || h == 0 {
+		return 1, 1
+	}
+	alphaX := make([]float64, w)
+	alphaY := make([]float64, h)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			a := float64(img.Pix[img.PixOffset(x, y)+3])
+			alphaX[x] += a
+			alphaY[y] += a
+		}
+	}
+	cutX := cumulativeExtent(alphaX, 0.80)
+	cutY := cumulativeExtent(alphaY, 0.80)
+	if cutX < 1 {
+		cutX = 1
+	}
+	if cutY < 1 {
+		cutY = 1
+	}
+	return cutX, cutY
+}
+
+// cumulativeExtent는 질량 누적 비율 massFrac를 커버하는 가장 좁은 연속 구간의 길이를 반환합니다.
+func cumulativeExtent(mass []float64, massFrac float64) int {
+	total := 0.0
+	for _, v := range mass {
+		total += v
+	}
+	if total == 0 {
+		return 0
+	}
+	target := total * massFrac
+	n := len(mass)
+	best := n
+	left := 0
+	cur := 0.0
+	for right := 0; right < n; right++ {
+		cur += mass[right]
+		for cur >= target {
+			if span := right - left + 1; span < best {
+				best = span
+			}
+			cur -= mass[left]
+			left++
+		}
+	}
+	return best
 }
 
 func minf(a, b float64) float64 {

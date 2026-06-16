@@ -6,6 +6,13 @@ export interface FrameItem {
   selected: boolean;
 }
 
+export interface FrameScores {
+  identity: number;
+  motion: number;
+  contact: number;
+  overall: number;
+}
+
 export type StateStatus = "idle" | "generating" | "done" | "error";
 
 export interface StateDef {
@@ -22,6 +29,7 @@ export interface StateDef {
   items: FrameItem[];
   warnings: string[];
   feedback: string;
+  scores?: FrameScores;
   facing?: string; // 8방향 키 (south 등, 미지정 시 방향 지시 없음)
   dirBase?: string; // 8방향 세트의 베이스 상태명 (세트 소속일 때만)
   mirrorOf?: string; // 미러링 소스 방향 키 (west→east 등, AI 생성 안 함)

@@ -68,6 +68,16 @@ export default function PreviewPanel({ state, allStates, directions, cellSize, b
       <div className="panel-head">
         <span className="step-badge">3</span>
         <span className="panel-title">{composeStateLabel(state, lang, t("custom"))}</span>
+        {state.status === "done" && state.scores && (
+          <div className="score-bar" title={t("score_tooltip")}>
+            <span className="score-pill">{t("score")} {(state.scores.overall * 100).toFixed(0)}</span>
+            <div className="score-segments">
+              <span style={{ width: `${state.scores.identity * 100}%` }} title={`${t("score_identity")}: ${(state.scores.identity * 100).toFixed(0)}`} />
+              <span style={{ width: `${state.scores.motion * 100}%` }} title={`${t("score_motion")}: ${(state.scores.motion * 100).toFixed(0)}`} />
+              <span style={{ width: `${state.scores.contact * 100}%` }} title={`${t("score_contact")}: ${(state.scores.contact * 100).toFixed(0)}`} />
+            </div>
+          </div>
+        )}
         <span className="hint">{state.name}</span>
         <span className="spacer" />
         <Tabs value={tab} onValueChange={(v) => setTab(v as ViewTab)}>

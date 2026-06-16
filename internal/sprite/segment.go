@@ -218,23 +218,42 @@ func segmentStrip(img *image.NRGBA, expected int) (segs []colSpan, natural int) 
 	// 발차기처럼 한 포즈가 토르소+뻗은 다리로 두 봉우리를 만들어도, 런 폭이 단일
 	// 포즈 폭(중앙값)이면 1개로 묶어 과분할을 막는다. 닿아 넓어진 런만 그만큼 쪼갠다.
 	med := medianRunWidth(runs)
+	widthTotal := 0.0
 	for _, r := range runs {
-		k := len(posePeaks(p, r.start, r.end))
+		widthTotal += float64(r.end - r.start)
+	}
+	for _, r := range runs {
+		nPeaks := len(posePeaks(p, r.start, r.end))
 		if len(runs) > 1 && med > 0 {
 			maxByWidth := int(float64(r.end-r.start)/med + 0.5)
 			if maxByWidth < 1 {
 				maxByWidth = 1
 			}
-			if k > maxByWidth {
-				k = maxByWidth
+			if nPeaks > maxByWidth {
+				nPeaks = maxByWidth
 			}
 		}
-		if k <= 1 {
+		// 포즈 사이 간격이 거의 없어(overlapping) 봉우리가 1개뿐이지만
+		// 런 폭이 평균 포즈 폭의 1.5배 이상이면 강제로 2개로 의심한다.
+		if nPeaks == 1 && len(runs) > 1 && med > 0 {
+			if float64(r.end-r.start) > med*1.45 {
+				nPeaks = 2
+			}
+		}
+		if nPeaks <= 1 {
 			segs = append(segs, r)
 		} else {
-			segs = append(segs, splitRange(p, r.start, r.end, k)...)
+			segs = append(segs, splitRange(p, r.start, r.end, nPeaks)...)
 		}
 	}
+
+	// 강제 복구: 감지된 수가 기대와 다르고, 전체 콘텐츠 폭이 기대 개수의
+	// 최소 폭을 감당할 수 있다면 전체 strip을 expected개로 균등/DP 분할.
+	// AI가 포즈를 마젠타 gutter 없이 완전히 붙여 그리는 경우를 방어한다.
+	if len(segs) != expected && widthTotal/float64(expected) >= 16 && w/expected >= 16 {
+		segs = splitRange(p, 0, w, expected)
+	}
+
 	// 방출 프레임 수 = 추정 포즈 수 (DP로 expected를 강제하지 않고 정직하게 보고).
 	return segs, len(segs)
 }

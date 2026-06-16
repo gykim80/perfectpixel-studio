@@ -1,139 +1,128 @@
 package sprite
 
-import "image"
+import (
+	"image"
+	"math"
+)
 
-// 품질 점수 + 정체성 지표. 평가 하니스가 생성 결과를 기계적으로 채점하는 데 씁니다.
-
-// QualityMetrics는 한 상태(애니메이션) 결과의 측정값 묶음입니다.
-type QualityMetrics struct {
-	Expected     int     `json:"expected"`
-	Found        int     `json:"found"`
-	Errors       int     `json:"errors"`
-	Warnings     int     `json:"warnings"`
-	Motion       float64 `json:"motion"`       // 인접 프레임 평균 변화율 (0=정지)
-	IdentityHash float64 `json:"identityHash"` // 프레임 간 dHash 유사도 0~1 (1=동일 구조)
-	Score        int     `json:"score"`        // 종합 0~100
-	Label        string  `json:"label"`
+// ScoreResult는 프레임 세트의 quality metric을 담습니다.
+type ScoreResult struct {
+	Identity float64 `json:"identity"` // 인접 프레임 간 평균 perceptual 유사도 (0~1)
+	Motion   float64 `json:"motion"`   // MotionPresence 0~1
+	Contact  float64 `json:"contact"`  // 땅선/가장자리 일관성 0~1
+	Overall  float64 `json:"overall"`  // 0~1 종합 점수
 }
 
-// ScoreFrames는 추출/검사 결과를 종합해 0~100 품질 점수를 산출합니다.
-// 가중치: 프레임 수 정확도(가장 큼) → 심각 오류 → 정체성/모션 → 경고.
-func ScoreFrames(frames []*image.NRGBA, expected int, insp InspectResult, motion float64) QualityMetrics {
-	m := QualityMetrics{
-		Expected: expected,
-		Found:    len(frames),
-		Errors:   len(insp.Errors),
-		Warnings: len(insp.Warnings),
-		Motion:   motion,
+// ScoreFrames는 프레임 세트의 완성도 점수를 계산합니다.
+func ScoreFrames(frames []*image.NRGBA) ScoreResult {
+	r := ScoreResult{}
+	if len(frames) < 2 {
+		return r
 	}
-	m.IdentityHash = IdentityConsistency(frames)
+	r.Motion = MotionPresence(frames)
+	r.Identity = pairwiseIdentity(frames)
+	r.Contact = contactScore(frames)
+	r.Overall = 0.5*r.Identity + 0.3*r.Motion + 0.2*r.Contact
+	return r
+}
 
-	score := 100.0
-	// 프레임 수: 기대치와의 차이에 비례한 큰 감점
-	if m.Found != expected {
-		diff := m.Found - expected
-		if diff < 0 {
-			diff = -diff
+// pairwiseIdentity는 인접 프레임 간 가중 색/알파 차이를 0~1로 정규화합니다.
+func pairwiseIdentity(frames []*image.NRGBA) float64 {
+	var total float64
+	pairs := 0
+	for i := 1; i < len(frames); i++ {
+		a, b := frames[i-1], frames[i]
+		if a.Rect != b.Rect {
+			continue
 		}
-		score -= 35 + 10*float64(diff)
+		var diff float64
+		var n int
+		for p := 0; p+3 < len(a.Pix) && p+3 < len(b.Pix); p += 4 {
+			// 색상 거리 인지 가중 + 알파 차이
+			dr := float64(int(a.Pix[p]) - int(b.Pix[p]))
+			dg := float64(int(a.Pix[p+1]) - int(b.Pix[p+1]))
+			db := float64(int(a.Pix[p+2]) - int(b.Pix[p+2]))
+			da := float64(int(a.Pix[p+3]) - int(b.Pix[p+3]))
+			// 인지 RGB 거리
+			d := math.Sqrt(0.299*dr*dr + 0.587*dg*dg + 0.114*db*db)
+			d += 0.5 * math.Abs(da)
+			if a.Pix[p+3] > alphaThreshold || b.Pix[p+3] > alphaThreshold {
+				diff += math.Min(d/(255.0*1.5), 1.0)
+				n++
+			}
+		}
+		if n > 0 {
+			total += 1.0 - diff/float64(n)
+			pairs++
+		}
 	}
-	// 심각 오류 / 경고
-	score -= 13 * float64(m.Errors)
-	score -= 3 * float64(m.Warnings)
-	// 정지(애니메이션이 움직이지 않음): 2프레임 이상인데 변화 거의 없음
-	if m.Found >= 2 && motion < 0.01 {
-		score -= 12
-	}
-	// 정체성 붕괴: 프레임 간 구조가 과하게 다르면 추가 감점
-	if m.Found >= 2 && m.IdentityHash < 0.55 {
-		score -= 10
-	}
-	if score < 0 {
-		score = 0
-	}
-	m.Score = int(score + 0.5)
-	switch {
-	case m.Score >= 85:
-		m.Label = "excellent"
-	case m.Score >= 70:
-		m.Label = "good"
-	case m.Score >= 50:
-		m.Label = "fair"
-	default:
-		m.Label = "poor"
-	}
-	return m
-}
-
-// dHash는 9×8 그레이스케일 차분 해시(64bit)를 계산합니다.
-// 인접 픽셀 밝기 비교라 색/조명 변화에 둔감하고 구조(포즈/실루엣)에 민감합니다.
-func dHash(img *image.NRGBA) uint64 {
-	const w, h = 9, 8
-	small := image.NewNRGBA(image.Rect(0, 0, w, h))
-	// 최근접 다운샘플 (정확도보다 속도 — 해시 안정성에는 충분)
-	sw, sh := img.Rect.Dx(), img.Rect.Dy()
-	if sw == 0 || sh == 0 {
+	if pairs == 0 {
 		return 0
 	}
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
-			sx := x * sw / w
-			sy := y * sh / h
-			i := img.PixOffset(sx, sy)
-			r, g, b, a := img.Pix[i], img.Pix[i+1], img.Pix[i+2], img.Pix[i+3]
-			// 투명 픽셀은 검정으로 — 실루엣이 해시에 반영됨
-			lum := uint8(0)
-			if a > alphaThreshold {
-				lum = uint8((299*int(r) + 587*int(g) + 114*int(b)) / 1000)
-			}
-			di := small.PixOffset(x, y)
-			small.Pix[di] = lum
-		}
-	}
-	var hash uint64
-	bit := 0
-	for y := 0; y < h; y++ {
-		for x := 0; x < w-1; x++ {
-			l := small.Pix[small.PixOffset(x, y)]
-			r := small.Pix[small.PixOffset(x+1, y)]
-			if l > r {
-				hash |= 1 << uint(bit)
-			}
-			bit++
-		}
-	}
-	return hash
+	return total / float64(pairs)
 }
 
-func hamming(a, b uint64) int {
-	x := a ^ b
-	c := 0
-	for x != 0 {
-		x &= x - 1
-		c++
+// contactScore는 베이스라인/상단 컨택의 수직 일관성을 측정합니다.
+// 캐릭터의 발/머리 높이가 프레임 간 크게 변하면 낮은 점수를 줍니다.
+func contactScore(frames []*image.NRGBA) float64 {
+	type bounds struct {
+		top, bottom, h int
+		has            bool
 	}
-	return c
-}
-
-// IdentityConsistency는 인접 프레임 dHash 해밍거리 평균을 0~1 유사도로 변환합니다.
-// 1=구조 동일, 0=완전 상이. 포즈가 바뀌므로 1은 아니며, 급락 시 캐릭터 변형 신호.
-func IdentityConsistency(frames []*image.NRGBA) float64 {
-	if len(frames) < 2 {
-		return 1
-	}
-	hashes := make([]uint64, len(frames))
+	bbs := make([]bounds, len(frames))
 	for i, f := range frames {
-		hashes[i] = dHash(f)
+		w, h := f.Rect.Dx(), f.Rect.Dy()
+		top, bottom := -1, -1
+		for y := 0; y < h; y++ {
+			rowOpaque := false
+			for x := 0; x < w; x++ {
+				if f.Pix[f.PixOffset(x, y)+3] > alphaThreshold {
+					rowOpaque = true
+					break
+				}
+			}
+			if rowOpaque {
+				if top < 0 {
+					top = y
+				}
+				bottom = y
+			}
+		}
+		bbs[i] = bounds{top, bottom, h, top >= 0}
 	}
-	var total, pairs float64
-	for i := 1; i < len(frames); i++ {
-		total += float64(hamming(hashes[i-1], hashes[i]))
-		pairs++
+	var n int
+	meanBottom, meanTop := 0.0, 0.0
+	maxH := 1
+	for _, b := range bbs {
+		if b.h > maxH {
+			maxH = b.h
+		}
+		if b.has {
+			meanBottom += float64(b.bottom)
+			meanTop += float64(b.top)
+			n++
+		}
 	}
-	avg := total / pairs // 0~64
-	sim := 1 - avg/64
-	if sim < 0 {
-		sim = 0
+	if n == 0 {
+		return 0
 	}
-	return sim
+	meanBottom /= float64(n)
+	meanTop /= float64(n)
+	var bottomVar, topVar float64
+	for _, b := range bbs {
+		if b.has {
+			bottomVar += math.Abs(float64(b.bottom) - meanBottom)
+			topVar += math.Abs(float64(b.top) - meanTop)
+		}
+	}
+	bottomMAE := bottomVar / float64(n)
+	topMAE := topVar / float64(n)
+	// 높이 대비 허용 범위: top(머리) 변화는 28% 이내, bottom(발)은 10% 이내.
+	// 수영/점프는 발끝을 고정으로 두고 상체가 위아래로 움직이므로 bottom이
+	// 안정적일 때 contact가 높아야 한다.
+	tolBottom := math.Max(float64(maxH)*0.10, 2.0)
+	tolTop := math.Max(float64(maxH)*0.28, 2.0)
+	bottomScore := 1.0 - math.Min(bottomMAE/tolBottom, 1.0)
+	topScore := 1.0 - math.Min(topMAE/tolTop, 1.0)
+	return 0.75*bottomScore + 0.25*topScore
 }

@@ -170,6 +170,12 @@ const en: Record<string, string> = {
   play: "Play",
   restart: "Restart",
   zoom: "Zoom {n}×",
+  score: "Quality",
+  score_tooltip: "Quality: identity (color/shape consistency) · motion (movement strength) · contact (ground/edge consistency)",
+  score_identity: "Identity",
+  score_motion: "Motion",
+  score_contact: "Contact",
+  score_low_warn: "Quality score is low. Provide feedback or regenerate to improve.",
 };
 
 export default en;

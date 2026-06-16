@@ -170,6 +170,12 @@ const ko: Record<string, string> = {
   play: "재생",
   restart: "처음부터",
   zoom: "확대 {n}×",
+  score: "완성도",
+  score_tooltip: "완성도 구성: 정체성(색/형태 일관성) · 모션(움직임 강도) · 컨택트(땅선/가장자리 일관성)",
+  score_identity: "정체성",
+  score_motion: "모션",
+  score_contact: "컨택트",
+  score_low_warn: "완성도 점수가 낮습니다. 피드백을 주거나 다시 생성해 개선할 수 있습니다.",
 };
 
 export default ko;
