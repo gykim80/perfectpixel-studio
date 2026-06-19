@@ -200,6 +200,11 @@ func (c *Client) doRequest(ctx context.Context, model string, body []byte) (img 
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		// http.Client.Timeout도 context.DeadlineExceeded로 감싸져 온다. 이미 한 번
+		// 제한 시간을 모두 쓴 요청을 재시도하면 UI가 최대 3배 오래 멈춰 보인다.
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, false, err
+		}
 		return nil, true, fmt.Errorf("네트워크 오류: %w", err)
 	}
 	defer resp.Body.Close()

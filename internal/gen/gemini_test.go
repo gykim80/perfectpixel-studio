@@ -4,12 +4,17 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
 // 1px PNG 대용 페이로드 (디코딩 검증은 하지 않으므로 임의 바이트면 충분)
 var fakePNG = []byte{0x89, 'P', 'N', 'G', 1, 2, 3}
@@ -75,6 +80,23 @@ func TestGeminiAllModelsNotFound(t *testing.T) {
 	// 기본 + 폴백 3개 = 4회
 	if calls != 1+len(modelFallbacks) {
 		t.Fatalf("호출 횟수 오류: %d", calls)
+	}
+}
+
+func TestGeminiTimeoutIsNotRetried(t *testing.T) {
+	calls := 0
+	c := NewClient("test-key", "")
+	c.HTTP = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, context.DeadlineExceeded
+	})}
+
+	_, err := c.GenerateImage(context.Background(), "p", nil, "1:1")
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("deadline 오류를 기대했지만 got %v", err)
+	}
+	if calls != 1 {
+		t.Fatalf("timeout 요청이 %d회 호출됨; 재시도하면 안 됩니다", calls)
 	}
 }
 

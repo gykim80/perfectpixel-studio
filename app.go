@@ -93,6 +93,9 @@ func friendlyErr(err error) error {
 	if errors.Is(err, context.Canceled) {
 		return errors.New("생성이 취소되었습니다")
 	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		return errors.New("이미지 생성 응답 시간이 초과되었습니다. 잠시 후 다시 시도해 주세요")
+	}
 	return err
 }
 
