@@ -76,12 +76,12 @@ func TestFacingPromptSection(t *testing.T) {
 
 func TestBuildStripPromptIncludesFacing(t *testing.T) {
 	spec := StateSpec{Name: "walk", Frames: 6, FPS: 10, Loop: true, Action: "walking", Facing: "east"}
-	p := BuildStripPrompt("a knight", StylePresets["pixel"], spec, "")
+	p := BuildStripPrompt("a knight", StylePresets["pixel"], spec, "", 256)
 	if !strings.Contains(p, "Facing direction lock") || !strings.Contains(p, "right-side profile") {
 		t.Error("스트립 프롬프트에 방향 잠금 섹션이 포함되어야 함")
 	}
 	spec.Facing = ""
-	p = BuildStripPrompt("a knight", StylePresets["pixel"], spec, "")
+	p = BuildStripPrompt("a knight", StylePresets["pixel"], spec, "", 256)
 	if strings.Contains(p, "Facing direction lock") {
 		t.Error("방향 미지정 시 방향 잠금 섹션이 없어야 함")
 	}

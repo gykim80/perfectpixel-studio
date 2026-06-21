@@ -36,7 +36,7 @@ func main() {
 			WindowIsTranslucent:  false,
 			About: &mac.AboutInfo{
 				Title:   "PerfectPixel",
-				Message: "AI 기반 애니메이션 스프라이트 생성 스튜디오",
+				Message: "AI 기반 애니메이션 스프라이트 생성 스튜디오\n버전 " + resolvedVersion(),
 			},
 		},
 	})

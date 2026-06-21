@@ -60,7 +60,7 @@ func buildRealBase() (*image.NRGBA, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 240*time.Second)
 	defer cancel()
 
-	bp := sprite.BuildCharacterPrompt(demoDesc, style)
+	bp := sprite.BuildCharacterPrompt(demoDesc, style, 256)
 	t0 := time.Now()
 	braw, err := p.GenerateImage(ctx, bp, nil, "1:1")
 	if err != nil {

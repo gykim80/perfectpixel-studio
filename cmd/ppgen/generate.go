@@ -73,7 +73,7 @@ func savePNG(path string, img image.Image) {
 
 // generateBase는 베이스 캐릭터를 생성하고 배경 제거 + 픽셀화한 정리본과 PNG 바이트를 반환합니다.
 func generateBase(ctx context.Context, p gen.Provider, desc, styleKey, style string) (*image.NRGBA, []byte, error) {
-	raw, err := p.GenerateImage(ctx, sprite.BuildCharacterPrompt(desc, style), nil, "1:1")
+	raw, err := p.GenerateImage(ctx, sprite.BuildCharacterPrompt(desc, style, 256), nil, "1:1")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +108,7 @@ func genState(ctx context.Context, p gen.Provider, opt options, style string,
 	best.Name, best.Expected = spec.Name, expected
 
 	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		prompt := sprite.BuildStripPrompt(opt.desc, style, spec, feedback)
+		prompt := sprite.BuildStripPrompt(opt.desc, style, spec, feedback, 256)
 		if len(refs) > 1 {
 			prompt += "\nMotion reference: the second attached image is the FRONT-view animation strip of this same character performing this exact action. Reproduce the same motion timing and pose phases frame by frame, but viewed from the required facing direction above.\n"
 		}

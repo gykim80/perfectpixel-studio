@@ -7,6 +7,7 @@ import GalleryModal from "./components/GalleryModal";
 import PreviewPanel from "./components/PreviewPanel";
 import SettingsModal, { ISettings } from "./components/SettingsModal";
 import StatesPanel from "./components/StatesPanel";
+import UpdateBadge from "./components/UpdateBadge";
 import { Button } from "./components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./components/ui/dialog";
 import { CharacterDef, DirectionInfo, FALLBACK_PRESETS, FrameItem, PresetInfo, StateDef, selectedFrames, uid } from "./types";
@@ -561,6 +562,7 @@ export default function App() {
             {settings ? PROVIDER_LABELS[settings.provider] ?? settings.provider : t("settings")}
             {settings && !hasActiveKey(settings) && <span className="text-destructive font-bold">!</span>}
           </Button>
+          <UpdateBadge />
         </div>
       </header>
 

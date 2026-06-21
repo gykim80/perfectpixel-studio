@@ -61,6 +61,12 @@
   .logo .logo-mark { width: 26px; height: 26px; image-rendering: pixelated; flex-shrink: 0; }
   .topbar-status { flex: 1; display: flex; justify-content: center; min-width: 0; }
   .topbar-actions { display: flex; align-items: center; gap: 6px; }
+  .update-badge { display: inline-flex; align-items: center; gap: 5px; font-size: var(--text-sm); font-family: var(--font-mono); color: hsl(var(--muted-foreground)); padding: 0 6px; white-space: nowrap; user-select: none; }
+  .update-badge-progress { color: hsl(var(--foreground)); }
+  .update-badge-btn { background: transparent; border: 0; cursor: pointer; border-radius: var(--r-sm); height: 28px; transition: color 0.15s, background 0.15s; }
+  .update-badge-btn:hover:not(:disabled) { color: hsl(var(--foreground)); background: hsl(var(--muted)); }
+  .update-badge-btn:disabled { cursor: default; }
+  .update-spin { animation: spin 0.8s linear infinite; }
 
   .workspace { display: flex; gap: 10px; padding: 0 10px 10px; overflow: hidden; min-height: 0; }
   .panel { display: flex; flex-direction: column; background: #fff; border: 1px solid hsl(var(--border)); border-radius: 12px; overflow: hidden; min-height: 0; box-shadow: var(--shadow); }

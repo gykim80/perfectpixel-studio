@@ -79,9 +79,9 @@ var facingDescs = map[string]facingDesc{
 	},
 	"east": {
 		view:       "right-side profile view",
-		camera:     "camera at the character's right side, perpendicular to the body; strictly 2D profile, no perspective rotation",
-		body:       "the character faces and moves toward the RIGHT edge of the canvas",
-		visibility: "right profile of the face only (one eye, one ear); right arm and right leg prominent, left limbs fully hidden behind the body; never show parts of the left side",
+		camera:     "camera locked at the character's right side, perfectly perpendicular — strictly 2D flat profile with zero perspective rotation at any point",
+		body:       "the character faces and moves toward the RIGHT edge of the canvas in every single frame",
+		visibility: "EXACTLY ONE eye (the right/near-side eye) visible — if two eyes appear the head has rotated wrong; EXACTLY ONE ear (the right/near ear) visible; right arm and right leg prominent in the foreground; the entire left side of the body (left arm, left leg, left eye, left ear) is hidden behind the body in every frame; the nose/snout always points RIGHT",
 	},
 	"south-east": {
 		view:       "three-quarter front-right view",

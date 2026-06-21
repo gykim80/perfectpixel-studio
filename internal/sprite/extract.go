@@ -18,12 +18,27 @@ type frameContent struct {
 }
 
 // extractContent는 컬럼 구간 span 안의 불투명 픽셀을 bbox로 잘라냅니다.
-// 소유권 추적(연결요소) 없이 구간 내 모든 콘텐츠를 모으므로, 팔다리가 분리되어도
-// 한 포즈로 안전하게 합쳐집니다.
-func extractContent(strip *image.NRGBA, span colSpan, h int) frameContent {
-	minX, minY, maxX, maxY := span.end, h, span.start-1, -1
+// clipL, clipR는 이 포즈의 "슬롯 경계" (인접 슬롯과의 중간 지점)로,
+// span이 이웃 포즈 영역까지 뻗어 있을 때 그 영역의 픽셀을 배제합니다.
+// 꼬리·날개·무기 끝이 이웃 슬롯까지 들어와 프레임에 유령처럼 나타나는
+// 문제를 차단하는 핵심 경계입니다.
+func extractContent(strip *image.NRGBA, span colSpan, h, clipL, clipR int) frameContent {
+	// 실제 읽기 범위 = span ∩ [clipL, clipR)
+	x0 := span.start
+	if x0 < clipL {
+		x0 = clipL
+	}
+	x1 := span.end
+	if x1 > clipR {
+		x1 = clipR
+	}
+	if x0 >= x1 {
+		return frameContent{}
+	}
+
+	minX, minY, maxX, maxY := x1, h, x0-1, -1
 	var sumWX, sumW float64
-	for x := span.start; x < span.end; x++ {
+	for x := x0; x < x1; x++ {
 		for y := 0; y < h; y++ {
 			a := strip.Pix[strip.PixOffset(x, y)+3]
 			if a <= alphaThreshold {
@@ -78,10 +93,31 @@ func ExtractFrames(strip *image.NRGBA, expected, cellW, cellH, margin int) Extra
 		return res
 	}
 	h := strip.Rect.Dy()
+	W := strip.Rect.Dx()
+
+	// 슬롯 경계: 인접 span 사이의 중간 지점을 기준으로 각 포즈의 수집 범위를 제한합니다.
+	// 꼬리·날개·무기 끝이 이웃 span까지 뻗어도, 중간 지점 너머의 픽셀은 해당 포즈에
+	// 귀속하지 않으므로 이웃 프레임에 유령(ghost)처럼 나타나는 문제를 차단합니다.
+	clipL := make([]int, len(segs))
+	clipR := make([]int, len(segs))
+	for i, s := range segs {
+		// 왼쪽 경계: 이전 span과의 gutter 중간점 (또는 스트립 왼쪽 끝)
+		if i == 0 {
+			clipL[i] = 0
+		} else {
+			clipL[i] = (segs[i-1].end + s.start) / 2
+		}
+		// 오른쪽 경계: 다음 span과의 gutter 중간점 (또는 스트립 오른쪽 끝)
+		if i == len(segs)-1 {
+			clipR[i] = W
+		} else {
+			clipR[i] = (s.end + segs[i+1].start) / 2
+		}
+	}
 
 	var fcs []frameContent
-	for _, s := range segs {
-		fc := extractContent(strip, s, h)
+	for i, s := range segs {
+		fc := extractContent(strip, s, h, clipL[i], clipR[i])
 		if fc.img != nil {
 			fcs = append(fcs, fc)
 		}

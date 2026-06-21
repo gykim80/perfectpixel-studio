@@ -67,7 +67,7 @@ func genCharacter(ctx context.Context, s gen.Provider, rc rosterChar, statesPer,
 
 	t0 := time.Now()
 	fmt.Printf("[%s] 베이스(픽셀) 생성 중...\n", rc.Name)
-	craw, err := s.GenerateImage(ctx, sprite.BuildCharacterPrompt(rc.Desc, style), nil, "1:1")
+	craw, err := s.GenerateImage(ctx, sprite.BuildCharacterPrompt(rc.Desc, style, 256), nil, "1:1")
 	if err != nil {
 		fmt.Printf("[%s] 베이스 실패: %v\n", rc.Name, err)
 		return out

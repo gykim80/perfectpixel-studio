@@ -274,6 +274,63 @@ func absDiff(a, b uint8) int {
 	return int(b - a)
 }
 
+// EdgeClipped는 콘텐츠가 캔버스 가장자리에 닿아 잘렸는지 판정합니다.
+// 배경 제거 후 외곽 ring(margin px) 위에 남은 불투명 픽셀은, 제대로 프레이밍된
+// 스프라이트라면 사실상 0이어야 합니다. 그 위에 의미 있는 양(평균 변 길이의
+// 일정 비율 이상)이 남아 있으면 칼·머리카락 등이 변에서 잘린 것으로 봅니다.
+// 적은 수(노이즈/안티에일리어싱)는 무시하므로 정상 스프라이트를 오탐하지 않습니다.
+func EdgeClipped(img *image.NRGBA) bool {
+	if img == nil {
+		return false
+	}
+	w, h := img.Rect.Dx(), img.Rect.Dy()
+	if w < 8 || h < 8 {
+		return false
+	}
+	margin := (w + h) / 2 / 256
+	if margin < 2 {
+		margin = 2
+	}
+	count := 0
+	for y := 0; y < h; y++ {
+		inner := y >= margin && y < h-margin
+		for x := 0; x < w; x++ {
+			if inner && x >= margin && x < w-margin {
+				continue
+			}
+			if img.Pix[img.PixOffset(x, y)+3] > alphaThreshold {
+				count++
+			}
+		}
+	}
+	threshold := int(float64(w+h) / 2 * 0.02)
+	if threshold < 12 {
+		threshold = 12
+	}
+	return count > threshold
+}
+
+// IsBlankSprite는 배경 제거 후 캐릭터가 사실상 사라졌는지(빈 결과) 판정합니다.
+// 어두운 캐릭터가 마젠타로 잘못 그려져 키잉에 통째로 먹히면 불투명 픽셀이 거의
+// 남지 않는데, 이 결과를 베이스/프레임으로 쓰면 정체성 검사가 0%로 오염됩니다.
+// 불투명 픽셀이 전체의 0.4% 미만이면 빈 스프라이트로 간주합니다.
+func IsBlankSprite(img *image.NRGBA) bool {
+	if img == nil {
+		return true
+	}
+	total := len(img.Pix) / 4
+	if total == 0 {
+		return true
+	}
+	opaque := 0
+	for i := 3; i < len(img.Pix); i += 4 {
+		if img.Pix[i] > alphaThreshold {
+			opaque++
+		}
+	}
+	return float64(opaque)/float64(total) < 0.004
+}
+
 // hasTransparency는 이미지에 의미 있는 투명 영역이 있는지 확인합니다.
 // 불투명 배경 이미지(사진 등)는 배경색이 히스토그램을 오염시켜
 // 베이스 대비 검사가 오탐을 내므로 검사 대상에서 제외합니다.

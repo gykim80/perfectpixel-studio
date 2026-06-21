@@ -16,6 +16,30 @@ func fillRect(img *image.NRGBA, x0, y0, x1, y1 int, r, g, b uint8) {
 	}
 }
 
+func TestEdgeClipped(t *testing.T) {
+	// 여백을 두고 중앙에 그린 블록은 잘림이 아님
+	centered := image.NewNRGBA(image.Rect(0, 0, 256, 256))
+	fillRect(centered, 60, 40, 196, 220, 40, 80, 200)
+	if EdgeClipped(centered) {
+		t.Fatal("여백 있는 중앙 스프라이트를 잘림으로 오탐")
+	}
+
+	// 왼쪽 변에 닿아 잘린 블록(칼/머리카락 모사)은 잘림으로 감지
+	clipped := image.NewNRGBA(image.Rect(0, 0, 256, 256))
+	fillRect(clipped, 0, 40, 120, 220, 40, 80, 200)
+	if !EdgeClipped(clipped) {
+		t.Fatal("변에 닿은 스프라이트를 잘림으로 감지하지 못함")
+	}
+
+	// 가장자리의 미세한 노이즈 몇 픽셀은 무시(오탐 방지)
+	noisy := image.NewNRGBA(image.Rect(0, 0, 256, 256))
+	fillRect(noisy, 60, 40, 196, 220, 40, 80, 200)
+	fillRect(noisy, 0, 0, 2, 2, 40, 80, 200)
+	if EdgeClipped(noisy) {
+		t.Fatal("미세 노이즈를 잘림으로 오탐")
+	}
+}
+
 func TestInspectFramesClean(t *testing.T) {
 	key := [3]uint8{255, 0, 255}
 	var frames []*image.NRGBA

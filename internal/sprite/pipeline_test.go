@@ -163,13 +163,21 @@ func TestEncodeGIF(t *testing.T) {
 }
 
 func TestBuildStripPrompt(t *testing.T) {
+	// cellSize=128 → refMin=32, refMax=64 → "32-64px"
 	p := BuildStripPrompt("blue wizard", StylePresets["pixel"], StateSpec{
 		Name: "walk", Frames: 6, FPS: 10, Loop: true, Action: "walking",
-	}, "make arms bigger")
-	for _, want := range []string{"exactly 6", "blue wizard", "magenta", "loops", "make arms bigger", "32-64px game sprite", "limited palette"} {
+	}, "make arms bigger", 128)
+	for _, want := range []string{"exactly 6", "blue wizard", "magenta", "loops", "make arms bigger", "32-64px", "limited palette"} {
 		if !containsFold(p, want) {
 			t.Fatalf("프롬프트에 %q 누락", want)
 		}
+	}
+	// cellSize=256 → refMin=64, refMax=128 → "64-128px"
+	p256 := BuildStripPrompt("blue wizard", StylePresets["pixel"], StateSpec{
+		Name: "walk", Frames: 6, FPS: 10, Loop: true, Action: "walking",
+	}, "", 256)
+	if !containsFold(p256, "64-128px") {
+		t.Fatalf("256px 프롬프트에 '64-128px' 누락")
 	}
 }
 

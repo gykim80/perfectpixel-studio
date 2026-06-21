@@ -61,6 +61,24 @@ func TestContactJitter(t *testing.T) {
 	}
 }
 
+func TestOverallCalibration(t *testing.T) {
+	// 정상 모션(motion≥motionFullScale)은 가중치가 온전히 반영돼야 한다.
+	// id=0.8, mo=full, co=0.95 → 0.5*0.8+0.3*1+0.2*0.95 = 0.89
+	got := overallScore(0.8, motionFullScale, 0.95)
+	if got < 0.88 || got > 0.90 {
+		t.Fatalf("정상 애니 종합점수 보정 오류: %.3f (기대 ~0.89)", got)
+	}
+	// 사실상 정지(모션<0.02)는 깨진 애니로 감점돼야 한다.
+	still := overallScore(1.0, 0.0, 1.0)
+	if still > 0.45 {
+		t.Fatalf("동결 클립 감점 안 됨: %.3f", still)
+	}
+	// 모션 정규화: 큰 모션도 1.0에서 포화(과보상 없음).
+	if overallScore(0.7, 0.45, 0.8) != overallScore(0.7, 0.18, 0.8) {
+		t.Fatal("모션 포화 실패: motionFullScale 초과가 더 가산됨")
+	}
+}
+
 func TestContactNaturalVerticalOffset(t *testing.T) {
 	// 점프/수영처럼 top만 변하고 bottom은 일정한 경우 contact 손해가 적어야 함
 	frames := []*image.NRGBA{

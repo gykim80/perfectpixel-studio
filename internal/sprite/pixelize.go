@@ -148,12 +148,34 @@ func PixelPostProcess(frames []*image.NRGBA, paletteSize int) {
 	if palette == nil {
 		return
 	}
-	scales := make([]int, 0, len(frames))
 	for _, f := range frames {
 		ApplyPalette(f, palette)
+	}
+
+	// 1차: fast-pixelizer 기반 edge-profile + autocorrelation 그리드 검출.
+	// 축별 독립 셀 수를 추정하므로 비정수 스케일·위상 어긋남에 견고하다.
+	cols := make([]int, 0, len(frames))
+	rows := make([]int, 0, len(frames))
+	for _, f := range frames {
+		if c, r, ok := detectGridCounts(f); ok {
+			cols = append(cols, c)
+			rows = append(rows, r)
+		}
+	}
+	if len(cols) > len(frames)/2 {
+		// 프레임 간 그리드 일관성을 위해 중앙값 셀 수 공유
+		mc, mr := medianInt(cols), medianInt(rows)
+		for i, f := range frames {
+			frames[i] = SnapToGrid(f, mc, mr)
+		}
+		return
+	}
+
+	// 폴백: 그리드 검출 불확실 → 기존 modal run-length 정수 스케일 스냅
+	scales := make([]int, 0, len(frames))
+	for _, f := range frames {
 		scales = append(scales, DetectPixelScale(f))
 	}
-	// 프레임 간 그리드 일관성을 위해 중앙값 스케일 공유
 	sorted := append([]int(nil), scales...)
 	sort.Ints(sorted)
 	scale := sorted[len(sorted)/2]

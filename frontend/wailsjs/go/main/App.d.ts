@@ -3,7 +3,15 @@
 import {main} from '../models';
 import {sprite} from '../models';
 
+export function ApplyUpdate():Promise<void>;
+
 export function CancelGeneration():Promise<void>;
+
+export function CheckUpdate():Promise<main.UpdateInfo>;
+
+export function OpenDownloadPage():Promise<void>;
+
+export function Version():Promise<string>;
 
 export function ClearSession():Promise<void>;
 

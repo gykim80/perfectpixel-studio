@@ -23,6 +23,16 @@ home.sh
 # 샘플 산출물
 /sample/
 
+# 컴파일된 바이너리 산출물 (릴리스는 GitHub Releases에서 배포)
+ppsamples
+ppgen
+ppvalidate
+ppverify
+
+# 비디오 파일 (대용량 — Git Releases 또는 외부 호스팅 사용)
+*.mp4
+*.mov
+
 # 내부 문서
 기술분석-스프라이트생성-알고리즘.md
 홍보기사.md
