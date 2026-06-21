@@ -81,6 +81,15 @@ func InspectFrames(frames []*image.NRGBA, key [3]uint8, base *image.NRGBA) Inspe
 		}
 	}
 
+	// 배경색이 마젠타가 아니면 YCbCr 매팅이 캐릭터까지 지워버리므로 다른 보정보다 먼저 주입한다.
+	if !isMagentaKey(key) {
+		addHint(fmt.Sprintf(
+			"CRITICAL BACKGROUND ERROR: the previous output used a non-magenta background (detected ~#%02X%02X%02X). "+
+				"The ENTIRE background MUST be solid pure magenta #FF00FF (R=255, G=0, B=255) — "+
+				"not white, not gray, not any other color. A non-magenta background makes character extraction completely impossible.",
+			key[0], key[1], key[2]))
+	}
+
 	areas := make([]int, 0, len(frames))
 	var opaqueTotal int
 	for _, f := range frames {

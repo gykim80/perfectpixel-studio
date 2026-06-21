@@ -97,6 +97,7 @@ func rejectClause() string {
 // BuildCharacterPrompt는 텍스트 설명 → 베이스 캐릭터 이미지 생성 프롬프트를 만듭니다.
 func BuildCharacterPrompt(description, style string) string {
 	var b strings.Builder
+	b.WriteString("BACKGROUND COLOR MANDATE (read this before drawing anything): fill the ENTIRE canvas background with solid pure magenta #FF00FF (R=255, G=0, B=255). Do not use white, gray, black, or any other background color.\n\n")
 	b.WriteString("Produce one complete game-character reference sprite in a relaxed player-avatar standing pose.\n\n")
 	fmt.Fprintf(&b, "Subject: %s.\n\n", strings.TrimSpace(description))
 	b.WriteString("Feature audit before drawing (do this internally, then render): identify and preserve the subject's hairstyle, hair color, eye color, outfit layers, accessories, weapon or signature prop, symbolic motifs, and dominant colors.\n\n")
@@ -120,6 +121,8 @@ func BuildCharacterPrompt(description, style string) string {
 func BuildStripPrompt(description, style string, spec StateSpec, feedback string) string {
 	var b strings.Builder
 	n := spec.Frames
+
+	b.WriteString("BACKGROUND COLOR MANDATE (read this before drawing anything): fill the ENTIRE canvas — every pixel that is not part of a character pose — with solid pure magenta #FF00FF (R=255, G=0, B=255). Do not use white, gray, black, or any other color as the background. A non-magenta background makes automatic extraction impossible and will require a full redraw.\n\n")
 
 	fmt.Fprintf(&b, "Draw a single horizontal row of exactly %d game-sprite poses of one character for the \"%s\" animation, ordered left to right. This is raw sprite art, not a photo or a film — draw only the character poses on a flat background.\n\n", n, spec.Name)
 
